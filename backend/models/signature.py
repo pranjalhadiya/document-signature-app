@@ -1,5 +1,12 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Float,
+    ForeignKey
+)
 from database import Base
+
 
 class Signature(Base):
     __tablename__ = "signatures"
@@ -18,8 +25,8 @@ class Signature(Base):
         nullable=False
     )
 
-    x = Column(Integer, nullable=False)
-    y = Column(Integer, nullable=False)
+    x = Column(Float, nullable=False)
+    y = Column(Float, nullable=False)
 
     page = Column(Integer, nullable=False)
 

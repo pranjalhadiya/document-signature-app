@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import api from "../api/axios";
+import Draggable from "react-draggable";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.min.mjs",
@@ -8,21 +9,34 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 ).toString();
 
 function PdfViewer({ documentId, fileUrl }) {
-  const [marker, setMarker] = useState(null);
+  const [marker, setMarker] = useState({
+      x: 100,
+      y: 100,
+    });
 
   const handleClick = async (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
 
-    const x = Math.round(e.clientX - rect.left);
-    const y = Math.round(e.clientY - rect.top);
+    // Relative coordinates (percentage)
+    const xPercent = Number(
+      (((e.clientX - rect.left) / rect.width) * 100).toFixed(2)
+    );
 
-    setMarker({ x, y });
+    const yPercent = Number(
+      (((e.clientY - rect.top) / rect.height) * 100).toFixed(2)
+    );
+
+    // Position marker visually
+    setMarker({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    });
 
     try {
       await api.post("/api/signatures", {
         document_id: documentId,
-        x,
-        y,
+        x: xPercent,
+        y: yPercent,
         page: 1,
       });
 
@@ -32,36 +46,40 @@ function PdfViewer({ documentId, fileUrl }) {
       alert("Failed to save");
     }
   };
-  console.log(fileUrl);
+
   return (
     <div
-      className="border mt-4"
+      className="relative mt-6 flex justify-center"
       onClick={handleClick}
     >
       <Document
-      file={fileUrl}
-      onLoadSuccess={({ numPages }) => {
-        console.log("Pages:", numPages);
-      }}
-      onLoadError={(error) => console.log(error)}
-    >
-      <Page
-        pageNumber={1}
-        width={800}
-      />
-    </Document>
+        file={fileUrl}
+        onLoadSuccess={({ numPages }) =>
+          console.log("Pages:", numPages)
+        }
+        onLoadError={(error) => console.log(error)}
+      >
+        <Page
+          pageNumber={1}
+          width={700}
+        />
+      </Document>
 
-      {marker && (
-        <div
-          className="absolute bg-yellow-300 px-2 py-1 rounded"
-          style={{
-            left: marker.x,
-            top: marker.y,
-          }}
-        >
-          ✍ Sign Here
-        </div>
-      )}
+    <Draggable
+      position={marker}
+      onStop={(e, data) => {
+        setMarker({
+          x: data.x,
+          y: data.y,
+        });
+      }}
+    >
+      <div
+        className="absolute bg-yellow-400 border-2 border-black px-3 py-2 rounded shadow-lg cursor-move z-50"
+      >
+       ✍ Sign Here
+      </div>
+    </Draggable>
     </div>
   );
 }
