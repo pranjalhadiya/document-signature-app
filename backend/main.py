@@ -3,6 +3,7 @@ from routers.auth import router as auth_router
 from routers.dashboard import router as dashboard_router
 from routers.document import router as document_router
 from fastapi.staticfiles import StaticFiles
+from routers.signature import router as signature_router
 
 app = FastAPI()
 
@@ -19,6 +20,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(dashboard_router)
 app.include_router(document_router)
+app.include_router(signature_router)
 
 app.mount(
     "/uploads",

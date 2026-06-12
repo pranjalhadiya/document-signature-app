@@ -1,3 +1,4 @@
+import PdfViewer from "../components/PdfViewer";
 import { useEffect, useState } from "react";
 import { getProfile, logout } from "../services/authService";
 import { useNavigate } from "react-router-dom";
@@ -8,6 +9,7 @@ function Dashboard() {
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
   const [documents, setDocuments] = useState([]);
+  const [selectedDoc, setSelectedDoc] = useState(null);
 
   const loadDocuments = async () => {
     try {
@@ -110,22 +112,23 @@ function Dashboard() {
                       📄 {doc.filename}
                     </span>
 
-                     <button
-                      onClick={() =>
-                        window.open(
-                          `http://127.0.0.1:8000/uploads/${doc.filename}`,
-                          "_blank"
-                        )
-                      }
-                      className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+                    <button
+                     onClick={() => setSelectedDoc(doc)}
+                      className="bg-indigo-600 text-white px-4 py-2 rounded"
                     >
-                      Preview
-                    </button>
+                     Preview
+                    </button>  
                   </div>
                 ))}
               </div>
             )}
         </div>
+        {selectedDoc && (
+          <PdfViewer
+            documentId={selectedDoc.id}
+            fileUrl={`http://127.0.0.1:8000/uploads/${selectedDoc.filename}`}
+          />
+        )}
       </div>
     </div>
   );
