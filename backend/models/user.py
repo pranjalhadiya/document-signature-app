@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String
 from database import Base
 
+
 class User(Base):
     __tablename__ = "users"
 
@@ -14,6 +15,7 @@ class User(Base):
         nullable=False
     )
 
+    # Hashed password, not the actual password
     password_hash = Column(
         String(255),
         nullable=False

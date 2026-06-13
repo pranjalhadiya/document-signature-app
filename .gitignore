@@ -3,5 +3,6 @@ __pycache__/
 .env
 uploads/
 node_modules/
+.pytest_cache/
 dist/
 *.pyc

@@ -22,6 +22,7 @@ router = APIRouter(
 )
 
 
+# Database session dependency
 def get_db():
     db = SessionLocal()
     try:
@@ -39,7 +40,7 @@ def upload_pdf(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-
+    # Allow only PDF uploads
     if not file.filename.endswith(".pdf"):
         raise HTTPException(
             status_code=400,
@@ -51,6 +52,7 @@ def upload_pdf(
         file.filename
     )
 
+    # Save uploaded file to local storage
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(
             file.file,
@@ -72,11 +74,13 @@ def upload_pdf(
         "id": document.id
     }
 
+
 @router.get("/")
 def get_documents(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    # Return documents uploaded by the current user
     documents = (
         db.query(Document)
         .filter(Document.owner_id == current_user.id)

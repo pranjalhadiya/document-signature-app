@@ -13,6 +13,8 @@ router = APIRouter(
     tags=["Signatures"]
 )
 
+
+# Database session dependency
 def get_db():
     db = SessionLocal()
     try:
@@ -27,6 +29,7 @@ def save_signature(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    # Save signature position for the current user
     signature = Signature(
         document_id=data.document_id,
         user_id=current_user.id,

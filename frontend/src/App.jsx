@@ -12,6 +12,7 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
+      {/* Protected route accessible only to authenticated users */}
       <Route
         path="/dashboard"
         element={

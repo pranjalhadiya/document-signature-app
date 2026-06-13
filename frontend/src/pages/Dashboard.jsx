@@ -1,15 +1,29 @@
-import PdfViewer from "../components/PdfViewer";
 import { useEffect, useState } from "react";
-import { getProfile, logout } from "../services/authService";
 import { useNavigate } from "react-router-dom";
+import { DndContext } from "@dnd-kit/core";
+
+import PdfViewer from "../components/PdfViewer";
+import SignatureModal from "../components/SignatureModal";
+import FieldSidebar from "../components/FieldSidebar";
+
 import api from "../api/axios";
+import { getProfile, logout } from "../services/authService";
 import { getDocuments } from "../services/documentService";
 
 function Dashboard() {
   const [user, setUser] = useState(null);
-  const navigate = useNavigate();
   const [documents, setDocuments] = useState([]);
   const [selectedDoc, setSelectedDoc] = useState(null);
+  const [placedFields, setPlacedFields] = useState([]);
+  const [signatures, setSignatures] = useState([]);
+  const [showSignatureModal, setShowSignatureModal] = useState(false);
+
+  const navigate = useNavigate();
+
+  const handleSaveSignature = (signature) => {
+    setSignatures((prev) => [...prev, signature]);
+    setShowSignatureModal(false);
+  };
 
   const loadDocuments = async () => {
     try {
@@ -20,10 +34,10 @@ function Dashboard() {
     }
   };
 
-   useEffect(() => {
-     getProfile()
+  useEffect(() => {
+    getProfile()
       .then(setUser)
-     .catch(() => navigate("/login"));
+      .catch(() => navigate("/login"));
 
     loadDocuments();
   }, []);
@@ -32,28 +46,55 @@ function Dashboard() {
     logout();
     navigate("/login");
   };
+
   const handleUpload = async (e) => {
     const file = e.target.files[0];
 
     const formData = new FormData();
-
     formData.append("file", file);
 
     try {
-     await api.post(
-      "/api/documents/upload",
-      formData
+      await api.post(
+        "/api/documents/upload",
+        formData
       );
+
       await loadDocuments();
-      
+
       alert("Upload successful");
     } catch {
       alert("Upload failed");
     }
   };
 
+  // Will be used in next step
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+
+    if (!over) return;
+
+    if (over.id === "pdf-drop-area") {
+      const newField = {
+        id: Date.now(),
+        type: active.data.current?.type,
+        value: active.data.current?.label,
+        style: active.data.current?.style,
+        x: 150,
+        y: 150,
+      };
+
+      setPlacedFields((prev) => [
+        ...prev,
+        newField,
+      ]);
+    }
+    console.log(active.data.current);
+  };
+
   return (
     <div className="min-h-screen bg-slate-100">
+
+      {/* Navbar */}
       <nav className="bg-white shadow p-4 flex justify-between">
         <h1 className="font-bold text-xl">
           SignifyPDF
@@ -68,6 +109,8 @@ function Dashboard() {
       </nav>
 
       <div className="p-8">
+
+        {/* User Info */}
         <div className="bg-white rounded-xl shadow p-6">
           <h2 className="text-2xl font-semibold">
             Welcome {user?.name} 👋
@@ -76,59 +119,93 @@ function Dashboard() {
           <p>{user?.email}</p>
         </div>
 
+        {/* Upload Section */}
         <div className="mt-6 bg-white rounded-xl p-6 shadow">
           <h3 className="font-semibold text-lg">
             Upload PDF
           </h3>
 
           <div className="border-2 border-dashed p-12 text-center mt-4 rounded">
-             <p className="mb-4">Select a PDF file</p>
+            <p className="mb-4">
+              Select a PDF file
+            </p>
 
-             <input
+            <input
               type="file"
               accept=".pdf"
               onChange={handleUpload}
               className="border p-2 rounded"
-             />
+            />
           </div>
         </div>
+
+        {/* Documents */}
         <div className="mt-6 bg-white rounded-xl p-6 shadow">
-            <h3 className="text-lg font-semibold mb-4">
-                My Documents
-            </h3>
+          <h3 className="text-lg font-semibold mb-4">
+            My Documents
+          </h3>
 
-             {documents.length === 0 ? (
-              <p className="text-gray-500">
-                No documents uploaded yet.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {documents.map((doc) => (
-                  <div
-                    key={doc.id}
-                    className="flex justify-between items-center border p-4 rounded-lg"
+          {documents.length === 0 ? (
+            <p className="text-gray-500">
+              No documents uploaded yet.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {documents.map((doc) => (
+                <div
+                  key={doc.id}
+                  className="flex justify-between items-center border p-4 rounded-lg"
+                >
+                  <span className="font-medium">
+                    {doc.filename}
+                  </span>
+
+                  <button
+                    onClick={() => setSelectedDoc(doc)}
+                    className="bg-indigo-600 text-white px-4 py-2 rounded"
                   >
-                    <span className="font-medium">
-                      📄 {doc.filename}
-                    </span>
-
-                    <button
-                     onClick={() => setSelectedDoc(doc)}
-                      className="bg-indigo-600 text-white px-4 py-2 rounded"
-                    >
-                     Preview
-                    </button>  
-                  </div>
-                ))}
-              </div>
-            )}
+                    Preview
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
+
+        {/* PDF Editor */}
         {selectedDoc && (
-          <PdfViewer
-            documentId={selectedDoc.id}
-            fileUrl={`http://127.0.0.1:8000/uploads/${selectedDoc.filename}`}
+          <DndContext onDragEnd={handleDragEnd}>
+            <div className="mt-6 flex gap-6">
+
+              <FieldSidebar
+                signatures={signatures}
+                openSignatureModal={() =>
+                  setShowSignatureModal(true)
+                }
+              />
+
+              <div className="flex-1">
+                <PdfViewer
+                  documentId={selectedDoc.id}
+                  fileUrl={`http://127.0.0.1:8000/uploads/${selectedDoc.filename}`}
+                  fields={placedFields}
+                />
+              </div>
+
+            </div>
+          </DndContext>
+        )}
+
+        {/* Signature Modal */}
+        {showSignatureModal && (
+          <SignatureModal
+            onSave={handleSaveSignature}
+            onClose={() =>
+              setShowSignatureModal(false)
+            }
           />
         )}
+
       </div>
     </div>
   );

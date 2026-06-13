@@ -1,8 +1,8 @@
-from sqlalchemy.orm import declarative_base
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy import create_engine
-from dotenv import load_dotenv
 import os
+
+from dotenv import load_dotenv
+from sqlalchemy import create_engine
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 load_dotenv()
 
@@ -19,7 +19,7 @@ SessionLocal = sessionmaker(
 Base = declarative_base()
 
 
-# Dependency for FastAPI routes
+# Database session dependency
 def get_db():
     db = SessionLocal()
     try:

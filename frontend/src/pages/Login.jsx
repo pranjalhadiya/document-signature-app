@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+
 import { loginUser } from "../services/authService";
 
 function Login() {
@@ -10,25 +11,22 @@ function Login() {
     password: "",
   });
 
+  // Authenticate user and redirect to dashboard
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  try {
-    const res = await loginUser(form);
+    try {
+      await loginUser(form);
 
-    console.log(res);
-    console.log(localStorage.getItem("access_token"));
+      navigate("/dashboard");
+    } catch (error) {
+      console.log("FULL ERROR:", error);
+      console.log("RESPONSE:", error.response);
+      console.log("DATA:", error.response?.data);
 
-    navigate("/dashboard");
-  } 
-  catch (error) {
-    console.log("FULL ERROR:", error);
-    console.log("RESPONSE:", error.response);
-    console.log("DATA:", error.response?.data);
-
-    alert(error.message);
-  }
-};
+      alert(error.message);
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-100">

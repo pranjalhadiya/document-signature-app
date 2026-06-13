@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+
 import { registerUser } from "../services/authService";
 
 function Register() {
@@ -12,12 +13,11 @@ function Register() {
     confirmPassword: "",
   });
 
+  // Validate input and create a new account
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (
-      form.password !== form.confirmPassword
-    ) {
+    if (form.password !== form.confirmPassword) {
       alert("Passwords do not match");
       return;
     }
@@ -33,7 +33,7 @@ function Register() {
     } catch (error) {
       alert(
         error.response?.data?.detail ||
-          "Registration failed"
+        "Registration failed"
       );
     }
   };
@@ -91,8 +91,7 @@ function Register() {
           onChange={(e) =>
             setForm({
               ...form,
-              confirmPassword:
-                e.target.value,
+              confirmPassword: e.target.value,
             })
           }
         />

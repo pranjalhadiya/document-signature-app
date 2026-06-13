@@ -15,6 +15,7 @@ export const loginUser = async (data) => {
     data
   );
 
+  // Store JWT tokens after successful login
   localStorage.setItem(
     "access_token",
     response.data.access_token
@@ -36,6 +37,7 @@ export const getProfile = async () => {
   return response.data;
 };
 
+// Clear stored tokens on logout
 export const logout = () => {
   localStorage.removeItem("access_token");
   localStorage.removeItem("refresh_token");
