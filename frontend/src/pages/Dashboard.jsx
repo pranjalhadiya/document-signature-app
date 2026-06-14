@@ -166,6 +166,9 @@ function Dashboard() {
       x,
       y,
     });
+    
+    const xPercent = x / canvasRect.width;
+    const yPercent = y / canvasRect.height;
 
     const newField = {
       id: Date.now(),
@@ -173,8 +176,8 @@ function Dashboard() {
       type: active.data.current?.type,
       value,
       style: active.data.current?.style,
-      x,
-      y,
+      x: xPercent,
+      y: yPercent,
       page: currentPage,
     };
 
@@ -186,8 +189,8 @@ function Dashboard() {
     try {
       await api.post("/api/signatures", {
         document_id: selectedDoc.id,
-        x,
-        y,
+        x: xPercent,
+        y: yPercent,
         page: currentPage,
         value,
         style: active.data.current?.style,
@@ -199,7 +202,7 @@ function Dashboard() {
     setActiveField(null);
   };
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-slate-100 overflow-x-hidden">
       <nav className="bg-white shadow p-4 flex justify-between">
         <h1 className="font-bold text-xl">
           Doc-Signature
@@ -255,105 +258,127 @@ function Dashboard() {
               {documents.map((doc) => (
                 <div
                   key={doc.id}
-                  className="flex justify-between items-center border p-4 rounded-lg"
+                  className="flex items-center border p-4 rounded-lg"
                 >
-                  <span className="font-medium">
+                  <span className="font-medium flex-1 truncate">
                     {doc.filename}
                   </span>
 
-                  <button
-                    onClick={async () => {
-                      setSelectedDoc(doc);
-                      setCurrentPage(1);
+                  <div className="flex gap-2 ml-4">
+                    <button
+                      onClick={async () => {
+                        setSelectedDoc(doc);
+                        setCurrentPage(1);
 
-                      try {
-                        const res = await api.get(
-                          `/api/signatures/document/${doc.id}`
-                        );
+                        try {
+                          const res = await api.get(
+                            `/api/signatures/document/${doc.id}`
+                          );
 
-                        const loadedFields = res.data.map(
-                          (signature) => ({
-                            id: signature.id,
-                            x: signature.x,
-                            y: signature.y,
-                            page: signature.page,
-                            value: signature.value,
-                            style: signature.style,
-                          })
-                        );
+                          const loadedFields = res.data.map(
+                            (signature) => ({
+                              id: signature.id,
+                              x: signature.x,
+                              y: signature.y,
+                              page: signature.page,
+                              value: signature.value,
+                              style: signature.style,
+                            })
+                          );
 
-                        setPlacedFields(loadedFields);
-                      } catch (err) {
-                        console.error(err);
-                      }
-                    }}
-                    className="bg-indigo-600 text-white px-4 py-2 rounded"
-                  >
-                    Preview
-                  </button>
+                          setPlacedFields(loadedFields);
+                        } catch (err) {
+                          console.error(err);
+                        }
+                      }}
+                      className="bg-indigo-600 text-white px-4 py-2 rounded"
+                    >
+                      Preview
+                    </button>
+
+                    <button
+                      onClick={async () => {
+                        try {
+                          const res = await api.post(
+                            `/api/documents/${doc.id}/generate`
+                          );
+
+                          window.open(
+                            `http://127.0.0.1:8000/${res.data.file}`,
+                            "_blank"
+                          );
+                        } catch (err) {
+                          console.error(err);
+                        }
+                      }}
+                      className="bg-green-600 text-white px-4 py-2 rounded"
+                    >
+                      Generate PDF
+                    </button>
+                  </div>  
                 </div>
               ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
         {selectedDoc && (
-          <DndContext
-            onDragStart={(event) => {
-              setActiveField(
-                event.active.data.current
-              );
-            }}
-            onDragEnd={(event) => {
-              handleDragEnd(event);
-              setActiveField(null);
-            }}
-          >
-            <div className="mt-6 flex gap-6 overflow-visible">
-              <FieldSidebar
-                signatures={signatures}
-                openSignatureModal={() =>
-                  setShowSignatureModal(
-                    true
-                  )
-                }
-              />
-
-              <div className="flex-1 overflow-visible">
-                <PdfViewer
-                  fileUrl={`http://127.0.0.1:8000/uploads/${selectedDoc.filename}`}
-                  fields={placedFields}
-                  removeField={removeField}
-                  pdfRef={pdfRef}
-                  currentPage={currentPage}
-                  setCurrentPage={setCurrentPage}
-                  numPages={numPages}
-                  setNumPages={setNumPages}
+            <DndContext
+              onDragStart={(event) => {
+                setActiveField(
+                  event.active.data.current
+                );
+              }}
+              onDragEnd={(event) => {
+                handleDragEnd(event);
+                setActiveField(null);
+              }}
+            >
+              <div className="mt-6 flex gap-6 overflow-hidden">
+                <FieldSidebar
+                  signatures={signatures}
+                  openSignatureModal={() =>
+                    setShowSignatureModal(
+                      true
+                    )
+                  }
                 />
-              </div>
-            </div>
 
-            <DragOverlay>
-              {activeField ? (
-                <div className="bg-yellow-200 border-2 border-indigo-500 px-4 py-2 rounded shadow-lg pointer-events-none">
-                  {activeField.label}
+                <div className="flex-1 overflow-visible">
+                  <PdfViewer
+                    fileUrl={`http://127.0.0.1:8000/uploads/${selectedDoc.filename}`}
+                    fields={placedFields}
+                    removeField={removeField}
+                    pdfRef={pdfRef}
+                    currentPage={currentPage}
+                    setCurrentPage={setCurrentPage}
+                    numPages={numPages}
+                    setNumPages={setNumPages}
+                  />
                 </div>
-              ) : null}
-            </DragOverlay>
-          </DndContext>
-        )}
+              </div>
 
-        {showSignatureModal && (
-          <SignatureModal
-            onSave={handleSaveSignature}
-            onClose={() =>
-              setShowSignatureModal(false)
-            }
-          />
-        )}
-      </div>
-    </div >
-  );
+              <DragOverlay>
+                {activeField ? (
+                  <div className="bg-yellow-200 border-2 border-indigo-500 px-4 py-2 rounded shadow-lg pointer-events-none">
+                    {activeField.label}
+                  </div>
+                ) : null}
+              </DragOverlay>
+            </DndContext>
+          )}
+
+          {showSignatureModal && (
+            <SignatureModal
+              onSave={handleSaveSignature}
+              onClose={() =>
+                setShowSignatureModal(false)
+              }
+            />
+          )}
+        </div>
+      </div >
+      );
 }
 
-export default Dashboard;
+      export default Dashboard;

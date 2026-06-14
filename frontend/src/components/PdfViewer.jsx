@@ -33,6 +33,9 @@ function PdfViewer({
     pdfRef.current = node;
   };
 
+  const PAGE_WIDTH = 700;
+  const PAGE_HEIGHT = 990;
+
   return (
     <div className="flex flex-col items-center">
 
@@ -75,7 +78,7 @@ function PdfViewer({
       {/* PDF */}
       <div
         ref={handleRef}
-        className="relative inline-block"
+        className="relative inline-block overflow-hidden"
       >
         <Document
           file={fileUrl}
@@ -108,8 +111,8 @@ function PdfViewer({
                 key={field.id}
                 className="absolute group cursor-pointer"
                 style={{
-                  left: `${field.x}px`,
-                  top: `${field.y}px`,
+                  left: `${field.x * PAGE_WIDTH}px`,
+                  top: `${field.y * PAGE_HEIGHT}px`,
                   pointerEvents: "auto",
                 }}
               >

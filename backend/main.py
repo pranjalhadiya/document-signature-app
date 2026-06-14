@@ -30,6 +30,11 @@ app.mount(
     name="uploads"
 )
 
+app.mount(
+    "/signed_pdfs",
+    StaticFiles(directory="signed_pdfs"),
+    name="signed_pdfs"
+)
 
 @app.get("/")
 def home():
