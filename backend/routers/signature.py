@@ -36,6 +36,8 @@ def save_signature(
         x=data.x,
         y=data.y,
         page=data.page,
+        value=data.value,
+        style=data.style,
         status="pending"
     )
 
@@ -47,3 +49,38 @@ def save_signature(
         "message": "Signature position saved",
         "id": signature.id
     }
+
+@router.get("/document/{document_id}")
+def get_signatures(
+    document_id: int,
+    db: Session = Depends(get_db)
+):
+    return (
+        db.query(Signature)
+        .filter(
+            Signature.document_id == document_id
+        )
+        .all()
+    )
+
+@router.delete("/{signature_id}")
+def delete_signature(
+    signature_id: int,
+    db: Session = Depends(get_db)
+):
+    signature = (
+        db.query(Signature)
+        .filter(Signature.id == signature_id)
+        .first()
+    )
+
+    if not signature:
+        raise HTTPException(
+            status_code=404,
+            detail="Signature not found"
+        )
+
+    db.delete(signature)
+    db.commit()
+
+    return {"message": "Deleted"}

@@ -1,10 +1,2 @@
 @import "tailwindcss";
-.react-pdf__Page {
-  position: relative;
-  z-index: 1;
-}
 
-.react-pdf__Page canvas {
-  position: relative;
-  z-index: 1;
-}

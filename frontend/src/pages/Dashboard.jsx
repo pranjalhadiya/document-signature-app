@@ -1,6 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { DndContext } from "@dnd-kit/core";
+import {
+  DndContext,
+  DragOverlay,
+} from "@dnd-kit/core";
 
 import PdfViewer from "../components/PdfViewer";
 import SignatureModal from "../components/SignatureModal";
@@ -16,12 +19,25 @@ function Dashboard() {
   const [selectedDoc, setSelectedDoc] = useState(null);
   const [placedFields, setPlacedFields] = useState([]);
   const [signatures, setSignatures] = useState([]);
-  const [showSignatureModal, setShowSignatureModal] = useState(false);
+  const [showSignatureModal, setShowSignatureModal] =
+    useState(false);
+  const [activeField, setActiveField] =
+    useState(null);
+
+  const [currentPage, setCurrentPage] =
+    useState(1);
+  const [numPages, setNumPages] =
+    useState(1);
+
+  const pdfRef = useRef(null);
 
   const navigate = useNavigate();
 
   const handleSaveSignature = (signature) => {
-    setSignatures((prev) => [...prev, signature]);
+    setSignatures((prev) => [
+      ...prev,
+      signature,
+    ]);
     setShowSignatureModal(false);
   };
 
@@ -67,37 +83,126 @@ function Dashboard() {
     }
   };
 
-  // Will be used in next step
-  const handleDragEnd = (event) => {
-    const { active, over } = event;
+  const removeField = async (id) => {
+    try {
+      await api.delete(`/api/signatures/${id}`);
 
-    if (!over) return;
-
-    if (over.id === "pdf-drop-area") {
-      const newField = {
-        id: Date.now(),
-        type: active.data.current?.type,
-        value: active.data.current?.label,
-        style: active.data.current?.style,
-        x: 150,
-        y: 150,
-      };
-
-      setPlacedFields((prev) => [
-        ...prev,
-        newField,
-      ]);
+      setPlacedFields((prev) =>
+        prev.filter((field) => field.id !== id)
+      );
+    } catch (err) {
+      console.error(err);
     }
-    console.log(active.data.current);
   };
 
+  const handleDragEnd = async (event) => {
+    const { active, over } = event;
+
+    if (!over || over.id !== "pdf-drop-area") {
+      setActiveField(null);
+      return;
+    }
+
+    if (!pdfRef.current) {
+      setActiveField(null);
+      return;
+    }
+
+    let value = active.data.current?.label;
+
+    if (active.data.current?.type === "Date") {
+      value = new Date().toLocaleDateString();
+    }
+
+    if (active.data.current?.type === "Text") {
+      value = prompt("Enter text");
+
+      if (!value) {
+        setActiveField(null);
+        return;
+      }
+    }
+
+    const pageCanvas =
+      pdfRef.current.querySelector("canvas");
+
+    if (!pageCanvas) {
+      setActiveField(null);
+      return;
+    }
+
+    const canvasRect =
+      pageCanvas.getBoundingClientRect();
+
+    const activeRect =
+      event.active.rect.current.translated;
+
+    if (!activeRect) {
+      setActiveField(null);
+      return;
+    }
+
+    let x =
+      activeRect.left -
+      canvasRect.left;
+
+    let y =
+      activeRect.top -
+      canvasRect.top;
+
+    x = Math.max(
+      0,
+      Math.min(x, canvasRect.width)
+    );
+
+    y = Math.max(
+      0,
+      Math.min(y, canvasRect.height)
+    );
+
+    console.log({
+      canvasRect,
+      activeRect,
+      x,
+      y,
+    });
+
+    const newField = {
+      id: Date.now(),
+      document_id: selectedDoc.id,
+      type: active.data.current?.type,
+      value,
+      style: active.data.current?.style,
+      x,
+      y,
+      page: currentPage,
+    };
+
+    setPlacedFields((prev) => [
+      ...prev,
+      newField,
+    ]);
+
+    try {
+      await api.post("/api/signatures", {
+        document_id: selectedDoc.id,
+        x,
+        y,
+        page: currentPage,
+        value,
+        style: active.data.current?.style,
+      });
+    } catch (err) {
+      console.error(err);
+    }
+
+    setActiveField(null);
+  };
   return (
     <div className="min-h-screen bg-slate-100">
-
-      {/* Navbar */}
       <nav className="bg-white shadow p-4 flex justify-between">
         <h1 className="font-bold text-xl">
-          SignifyPDF
+          Doc-Signature
         </h1>
 
         <button
@@ -109,8 +214,6 @@ function Dashboard() {
       </nav>
 
       <div className="p-8">
-
-        {/* User Info */}
         <div className="bg-white rounded-xl shadow p-6">
           <h2 className="text-2xl font-semibold">
             Welcome {user?.name} 👋
@@ -119,7 +222,6 @@ function Dashboard() {
           <p>{user?.email}</p>
         </div>
 
-        {/* Upload Section */}
         <div className="mt-6 bg-white rounded-xl p-6 shadow">
           <h3 className="font-semibold text-lg">
             Upload PDF
@@ -139,7 +241,6 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* Documents */}
         <div className="mt-6 bg-white rounded-xl p-6 shadow">
           <h3 className="text-lg font-semibold mb-4">
             My Documents
@@ -161,7 +262,31 @@ function Dashboard() {
                   </span>
 
                   <button
-                    onClick={() => setSelectedDoc(doc)}
+                    onClick={async () => {
+                      setSelectedDoc(doc);
+                      setCurrentPage(1);
+
+                      try {
+                        const res = await api.get(
+                          `/api/signatures/document/${doc.id}`
+                        );
+
+                        const loadedFields = res.data.map(
+                          (signature) => ({
+                            id: signature.id,
+                            x: signature.x,
+                            y: signature.y,
+                            page: signature.page,
+                            value: signature.value,
+                            style: signature.style,
+                          })
+                        );
+
+                        setPlacedFields(loadedFields);
+                      } catch (err) {
+                        console.error(err);
+                      }
+                    }}
                     className="bg-indigo-600 text-white px-4 py-2 rounded"
                   >
                     Preview
@@ -172,31 +297,52 @@ function Dashboard() {
           )}
         </div>
 
-        {/* PDF Editor */}
         {selectedDoc && (
-          <DndContext onDragEnd={handleDragEnd}>
-            <div className="mt-6 flex gap-6">
-
+          <DndContext
+            onDragStart={(event) => {
+              setActiveField(
+                event.active.data.current
+              );
+            }}
+            onDragEnd={(event) => {
+              handleDragEnd(event);
+              setActiveField(null);
+            }}
+          >
+            <div className="mt-6 flex gap-6 overflow-visible">
               <FieldSidebar
                 signatures={signatures}
                 openSignatureModal={() =>
-                  setShowSignatureModal(true)
+                  setShowSignatureModal(
+                    true
+                  )
                 }
               />
 
-              <div className="flex-1">
+              <div className="flex-1 overflow-visible">
                 <PdfViewer
-                  documentId={selectedDoc.id}
                   fileUrl={`http://127.0.0.1:8000/uploads/${selectedDoc.filename}`}
                   fields={placedFields}
+                  removeField={removeField}
+                  pdfRef={pdfRef}
+                  currentPage={currentPage}
+                  setCurrentPage={setCurrentPage}
+                  numPages={numPages}
+                  setNumPages={setNumPages}
                 />
               </div>
-
             </div>
+
+            <DragOverlay>
+              {activeField ? (
+                <div className="bg-yellow-200 border-2 border-indigo-500 px-4 py-2 rounded shadow-lg pointer-events-none">
+                  {activeField.label}
+                </div>
+              ) : null}
+            </DragOverlay>
           </DndContext>
         )}
 
-        {/* Signature Modal */}
         {showSignatureModal && (
           <SignatureModal
             onSave={handleSaveSignature}
@@ -205,9 +351,8 @@ function Dashboard() {
             }
           />
         )}
-
       </div>
-    </div>
+    </div >
   );
 }
 

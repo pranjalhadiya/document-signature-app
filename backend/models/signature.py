@@ -3,7 +3,8 @@ from sqlalchemy import (
     Integer,
     String,
     Float,
-    ForeignKey
+    ForeignKey,
+    Text
 )
 from database import Base
 
@@ -13,7 +14,6 @@ class Signature(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
-    # Associated document and signer
     document_id = Column(
         Integer,
         ForeignKey("documents.id"),
@@ -26,13 +26,17 @@ class Signature(Base):
         nullable=False
     )
 
-    # Signature position on the PDF (stored as percentages)
     x = Column(Float, nullable=False)
     y = Column(Float, nullable=False)
 
     page = Column(Integer, nullable=False)
 
-    # Current signing status
+    # NEW
+    value = Column(Text, nullable=False)
+
+    # NEW
+    style = Column(String(50), nullable=True)
+
     status = Column(
         String(50),
         default="pending"

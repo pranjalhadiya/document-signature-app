@@ -11,6 +11,7 @@ function DraggableField({
     listeners,
     setNodeRef,
     transform,
+    isDragging,
   } = useDraggable({
     id,
     data: {
@@ -20,11 +21,12 @@ function DraggableField({
     },
   });
 
-  const style = transform
-    ? {
-        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-      }
-    : undefined;
+  const style = {
+    transform: transform
+      ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
+      : undefined,
+    visibility: isDragging ? "hidden" : "visible",
+  };
 
   return (
     <div
@@ -32,7 +34,7 @@ function DraggableField({
       style={style}
       {...listeners}
       {...attributes}
-      className="border rounded p-3 mb-3 bg-white cursor-grab hover:bg-slate-100"
+      className="border rounded p-3 mb-3 bg-white cursor-grab hover:bg-slate-100 select-none"
     >
       {label}
     </div>

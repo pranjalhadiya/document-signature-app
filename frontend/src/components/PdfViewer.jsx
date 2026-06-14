@@ -1,87 +1,145 @@
-import { Document, Page, pdfjs } from "react-pdf";
-import { useDroppable } from "@dnd-kit/core";
+import {
+  Document,
+  Page,
+  pdfjs,
+} from "react-pdf";
+import {
+  useDroppable,
+} from "@dnd-kit/core";
 
-// Configure PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/build/pdf.worker.min.mjs",
-  import.meta.url
-).toString();
+pdfjs.GlobalWorkerOptions.workerSrc =
+  new URL(
+    "pdfjs-dist/build/pdf.worker.min.mjs",
+    import.meta.url
+  ).toString();
 
 function PdfViewer({
-  documentId,
   fileUrl,
   fields,
+  removeField,
+  pdfRef,
+  currentPage,
+  setCurrentPage,
+  numPages,
+  setNumPages,
 }) {
-  const { setNodeRef } = useDroppable({
-    id: "pdf-drop-area",
-  });
+  const { setNodeRef } =
+    useDroppable({
+      id: "pdf-drop-area",
+    });
+
+  const handleRef = (node) => {
+    setNodeRef(node);
+    pdfRef.current = node;
+  };
 
   return (
-    <div
-      ref={setNodeRef}
-      className="mt-6 bg-white border-2 border-dashed border-slate-300 rounded-lg p-4 flex justify-center"
-    >
-      <div className="relative inline-block overflow-visible">
-        {/* PDF */}
+    <div className="flex flex-col items-center">
+
+      {/* Page Controls */}
+      <div className="flex gap-4 mb-4 items-center">
+        <button
+          disabled={currentPage === 1}
+          onClick={() =>
+            setCurrentPage((p) =>
+              Math.max(1, p - 1)
+            )
+          }
+          className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+        >
+          Previous
+        </button>
+
+        <span className="font-medium">
+          Page {currentPage} of {numPages}
+        </span>
+
+        <button
+          disabled={
+            currentPage === numPages
+          }
+          onClick={() =>
+            setCurrentPage((p) =>
+              Math.min(
+                numPages,
+                p + 1
+              )
+            )
+          }
+          className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+        >
+          Next
+        </button>
+      </div>
+
+      {/* PDF */}
+      <div
+        ref={handleRef}
+        className="relative inline-block"
+      >
         <Document
           file={fileUrl}
           onLoadSuccess={({ numPages }) =>
-            console.log("Pages:", numPages)
-          }
-          onLoadError={(error) =>
-            console.log(error)
+            setNumPages(numPages)
           }
         >
           <Page
-            pageNumber={1}
+            pageNumber={currentPage}
             width={700}
             renderTextLayer={false}
             renderAnnotationLayer={false}
-            className="relative z-0"
           />
         </Document>
 
-        {/* Overlay */}
         <div
-          className="absolute inset-0 overflow-visible"
+          className="absolute top-0 left-0 w-full h-full"
           style={{
+            pointerEvents: "auto",
             zIndex: 100,
-            pointerEvents: "none",
           }}
         >
-          {fields.map((field) => (
-            <div
-              key={field.id}
-              className={`
-                absolute
-                bg-yellow-200
-                border-2
-                border-indigo-500
-                px-4
-                py-2
-                rounded
-                shadow-lg
-                ${
-                  field.style === "style1"
-                    ? "font-serif italic text-2xl"
-                    : field.style === "style2"
-                    ? "font-mono text-2xl"
-                    : field.style === "style3"
-                    ? "font-bold text-2xl"
-                    : ""
-                }
-              `}
-              style={{
-                left: field.x,
-                top: field.y,
-                zIndex: 101,
-              }}
-            >
-              {field.type === "Signature"
-                ? field.value
-                : field.type}
-            </div>
-          ))}
+          {fields
+            .filter(
+              (field) =>
+                field.page === currentPage
+            )
+            .map((field) => (
+              <div
+                key={field.id}
+                className="absolute group cursor-pointer"
+                style={{
+                  left: `${field.x}px`,
+                  top: `${field.y}px`,
+                  pointerEvents: "auto",
+                }}
+              >
+                <span
+                  className={
+                    field.style === "style1"
+                      ? "font-serif italic text-2xl"
+                      : field.style === "style2"
+                        ? "font-mono text-2xl"
+                        : field.style === "style3"
+                          ? "font-bold text-2xl"
+                          : "text-lg"
+                  }
+                >
+                  {field.value}
+                </span>
+
+                <button
+                  onClick={() =>
+                    removeField(field.id)
+                  }
+                  className="hidden group-hover:block absolute -top-3 -right-3 bg-red-500 text-white rounded-full w-5 h-5 text-xs"
+                  style={{
+                    pointerEvents: "auto",
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
         </div>
       </div>
     </div>
