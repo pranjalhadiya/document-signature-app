@@ -6,6 +6,7 @@ from routers.auth import router as auth_router
 from routers.dashboard import router as dashboard_router
 from routers.document import router as document_router
 from routers.signature import router as signature_router
+from routers.public_sign import router as public_sign_router
 
 app = FastAPI()
 
@@ -22,6 +23,7 @@ app.include_router(auth_router)
 app.include_router(dashboard_router)
 app.include_router(document_router)
 app.include_router(signature_router)
+app.include_router(public_sign_router)
 
 # Serve uploaded PDF files
 app.mount(

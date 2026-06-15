@@ -1,6 +1,7 @@
 import os
 import shutil
 import fitz
+import secrets
 
 from fastapi import (
     APIRouter,
@@ -16,6 +17,7 @@ from database import SessionLocal
 from models.document import Document
 from models.user import User
 from models.signature import Signature
+from models.signing_link import SigningLink
 from utils.dependencies import get_current_user
 
 router = APIRouter(
@@ -155,4 +157,54 @@ def generate_signed_pdf(
     return {
         "message": "PDF generated",
         "file": output_path
+    }
+
+@router.post("/{document_id}/share")
+def generate_sign_link(
+    document_id: int,
+    db: Session = Depends(get_db)
+):
+    token = secrets.token_urlsafe(32)
+
+    link = SigningLink(
+        document_id=document_id,
+        token=token
+    )
+
+    db.add(link)
+    db.commit()
+    db.refresh(link)
+
+    return {
+        "token": token,
+        "link": f"http://localhost:5173/sign/{token}"
+    }
+
+@router.get("/public/{token}")
+def get_document_by_token(
+    token: str,
+    db: Session = Depends(get_db)
+):
+    link = (
+        db.query(SigningLink)
+        .filter(SigningLink.token == token)
+        .first()
+    )
+
+    if not link:
+        raise HTTPException(
+            status_code=404,
+            detail="Invalid link"
+        )
+
+    document = (
+        db.query(Document)
+        .filter(Document.id == link.document_id)
+        .first()
+    )
+
+    return {
+        "document_id": document.id,
+        "filename": document.filename,
+        "file_url": f"http://127.0.0.1:8000/uploads/{document.filename}"
     }
