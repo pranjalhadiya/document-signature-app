@@ -8,7 +8,8 @@ from fastapi import (
     UploadFile,
     File,
     Depends,
-    HTTPException
+    HTTPException,
+    Request
 )
 
 from sqlalchemy.orm import Session
@@ -19,6 +20,7 @@ from models.user import User
 from models.signature import Signature
 from models.signing_link import SigningLink
 from utils.dependencies import get_current_user
+from utils.audit import create_audit_log
 
 router = APIRouter(
     prefix="/api/documents",
@@ -40,6 +42,7 @@ UPLOAD_DIR = "uploads"
 
 @router.post("/upload")
 def upload_pdf(
+    request: Request,
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -73,6 +76,14 @@ def upload_pdf(
     db.commit()
     db.refresh(document)
 
+    create_audit_log(
+        db,
+        document.id,
+        "Uploaded document",
+        current_user.name,
+        request.client.host
+    )
+
     return {
         "message": "File uploaded",
         "id": document.id
@@ -96,6 +107,8 @@ def get_documents(
 @router.post("/{document_id}/generate")
 def generate_signed_pdf(
     document_id: int,
+    request: Request,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     document = (
@@ -154,6 +167,14 @@ def generate_signed_pdf(
     pdf.save(output_path)
     pdf.close()
 
+    create_audit_log(
+        db,
+        document.id,
+        "Generated signed PDF",
+        current_user.name,
+        request.client.host
+    )
+
     return {
         "message": "PDF generated",
         "file": output_path
@@ -162,6 +183,8 @@ def generate_signed_pdf(
 @router.post("/{document_id}/share")
 def generate_sign_link(
     document_id: int,
+    request: Request,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     token = secrets.token_urlsafe(32)
@@ -174,6 +197,14 @@ def generate_sign_link(
     db.add(link)
     db.commit()
     db.refresh(link)
+
+    create_audit_log(
+        db,
+        document_id,
+        "Generated public signing link",
+        current_user.name,
+        request.client.host
+    )
 
     return {
         "token": token,

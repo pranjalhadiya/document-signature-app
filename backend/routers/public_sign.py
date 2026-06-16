@@ -1,7 +1,8 @@
 from fastapi import (
     APIRouter,
     Depends,
-    HTTPException
+    HTTPException,
+    Request
 )
 
 from sqlalchemy.orm import Session
@@ -10,6 +11,7 @@ from database import get_db
 from models.signing_link import SigningLink
 from models.signature import Signature
 from schemas.public_sign import PublicSignatureCreate
+from utils.audit import create_audit_log
 
 router = APIRouter(
     prefix="/api/public-sign",
@@ -20,6 +22,7 @@ router = APIRouter(
 def save_public_signature(
     token: str,
     data: PublicSignatureCreate,
+    request: Request,
     db: Session = Depends(get_db)
 ):
     link = (
@@ -48,6 +51,14 @@ def save_public_signature(
     db.add(signature)
     db.commit()
     db.refresh(signature)
+
+    create_audit_log(
+        db,
+        link.document_id,
+        "Public user signed document",
+        "External Signer",
+        request.client.host
+    )
 
     return {
         "message": "Saved",

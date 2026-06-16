@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request, HTTPException
 from sqlalchemy.orm import Session
 
 from database import SessionLocal
@@ -7,6 +7,7 @@ from models.user import User
 
 from schemas.signature import SignatureCreate
 from utils.dependencies import get_current_user
+from utils.audit import create_audit_log
 
 router = APIRouter(
     prefix="/api/signatures",
@@ -26,6 +27,7 @@ def get_db():
 @router.post("/")
 def save_signature(
     data: SignatureCreate,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -44,6 +46,14 @@ def save_signature(
     db.add(signature)
     db.commit()
     db.refresh(signature)
+
+    create_audit_log(
+        db,
+        signature.document_id,
+        "Added signature",
+        current_user.name,
+        request.client.host
+    )
 
     return {
         "message": "Signature position saved",
