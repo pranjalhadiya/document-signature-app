@@ -9,3 +9,7 @@ class SignatureCreate(BaseModel):
 
     value: str
     style: str | None = None
+
+class SignatureUpdateStatus(BaseModel):
+    status: str
+    rejection_reason: str | None = None

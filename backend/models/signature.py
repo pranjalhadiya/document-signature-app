@@ -41,3 +41,4 @@ class Signature(Base):
         String(50),
         default="pending"
     )
+    rejection_reason = Column(String, nullable=True)

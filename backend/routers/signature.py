@@ -5,7 +5,7 @@ from database import SessionLocal
 from models.signature import Signature
 from models.user import User
 
-from schemas.signature import SignatureCreate
+from schemas.signature import SignatureCreate, SignatureUpdateStatus
 from utils.dependencies import get_current_user
 from utils.audit import create_audit_log
 
@@ -94,3 +94,32 @@ def delete_signature(
     db.commit()
 
     return {"message": "Deleted"}
+
+@router.put("/{signature_id}/status")
+def update_signature_status(
+    signature_id: int,
+    data: SignatureUpdateStatus,
+    db: Session = Depends(get_db)
+):
+    signature = (
+        db.query(Signature)
+        .filter(Signature.id == signature_id)
+        .first()
+    )
+
+    if not signature:
+        raise HTTPException(
+            status_code=404,
+            detail="Signature not found"
+        )
+
+    signature.status = data.status
+    signature.rejection_reason = data.rejection_reason
+
+    db.commit()
+    db.refresh(signature)
+
+    return {
+        "message": "Status updated",
+        "status": signature.status
+    }
