@@ -166,7 +166,7 @@ function Dashboard() {
       x,
       y,
     });
-    
+
     const xPercent = x / canvasRect.width;
     const yPercent = y / canvasRect.height;
 
@@ -300,6 +300,29 @@ function Dashboard() {
                       onClick={async () => {
                         try {
                           const res = await api.post(
+                            `/api/documents/${doc.id}/share`
+                          );
+
+                          navigator.clipboard.writeText(
+                            res.data.link
+                          );
+
+                          alert(
+                            `Public link copied!\n${res.data.link}`
+                          );
+                        } catch (err) {
+                          console.error(err);
+                        }
+                      }}
+                      className="bg-blue-600 text-white px-4 py-2 rounded"
+                    >
+                      Share Link
+                    </button>
+
+                    <button
+                      onClick={async () => {
+                        try {
+                          const res = await api.post(
                             `/api/documents/${doc.id}/generate`
                           );
 
@@ -315,70 +338,70 @@ function Dashboard() {
                     >
                       Generate PDF
                     </button>
-                  </div>  
+                  </div>
                 </div>
               ))}
-                </div>
-              )}
             </div>
-
-        {selectedDoc && (
-            <DndContext
-              onDragStart={(event) => {
-                setActiveField(
-                  event.active.data.current
-                );
-              }}
-              onDragEnd={(event) => {
-                handleDragEnd(event);
-                setActiveField(null);
-              }}
-            >
-              <div className="mt-6 flex gap-6 overflow-hidden">
-                <FieldSidebar
-                  signatures={signatures}
-                  openSignatureModal={() =>
-                    setShowSignatureModal(
-                      true
-                    )
-                  }
-                />
-
-                <div className="flex-1 overflow-visible">
-                  <PdfViewer
-                    fileUrl={`http://127.0.0.1:8000/uploads/${selectedDoc.filename}`}
-                    fields={placedFields}
-                    removeField={removeField}
-                    pdfRef={pdfRef}
-                    currentPage={currentPage}
-                    setCurrentPage={setCurrentPage}
-                    numPages={numPages}
-                    setNumPages={setNumPages}
-                  />
-                </div>
-              </div>
-
-              <DragOverlay>
-                {activeField ? (
-                  <div className="bg-yellow-200 border-2 border-indigo-500 px-4 py-2 rounded shadow-lg pointer-events-none">
-                    {activeField.label}
-                  </div>
-                ) : null}
-              </DragOverlay>
-            </DndContext>
-          )}
-
-          {showSignatureModal && (
-            <SignatureModal
-              onSave={handleSaveSignature}
-              onClose={() =>
-                setShowSignatureModal(false)
-              }
-            />
           )}
         </div>
-      </div >
-      );
+
+        {selectedDoc && (
+          <DndContext
+            onDragStart={(event) => {
+              setActiveField(
+                event.active.data.current
+              );
+            }}
+            onDragEnd={(event) => {
+              handleDragEnd(event);
+              setActiveField(null);
+            }}
+          >
+            <div className="mt-6 flex gap-6 overflow-hidden">
+              <FieldSidebar
+                signatures={signatures}
+                openSignatureModal={() =>
+                  setShowSignatureModal(
+                    true
+                  )
+                }
+              />
+
+              <div className="flex-1 overflow-visible">
+                <PdfViewer
+                  fileUrl={`http://127.0.0.1:8000/uploads/${selectedDoc.filename}`}
+                  fields={placedFields}
+                  removeField={removeField}
+                  pdfRef={pdfRef}
+                  currentPage={currentPage}
+                  setCurrentPage={setCurrentPage}
+                  numPages={numPages}
+                  setNumPages={setNumPages}
+                />
+              </div>
+            </div>
+
+            <DragOverlay>
+              {activeField ? (
+                <div className="bg-yellow-200 border-2 border-indigo-500 px-4 py-2 rounded shadow-lg pointer-events-none">
+                  {activeField.label}
+                </div>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
+        )}
+
+        {showSignatureModal && (
+          <SignatureModal
+            onSave={handleSaveSignature}
+            onClose={() =>
+              setShowSignatureModal(false)
+            }
+          />
+        )}
+      </div>
+    </div >
+  );
 }
 
-      export default Dashboard;
+export default Dashboard;
