@@ -182,7 +182,6 @@ function PublicSigner() {
                 }}
             >
                 <div className="p-8">
-                    {/* Header Card */}
                     <div className="bg-white rounded-xl shadow p-6">
                         <h1 className="text-2xl font-semibold">
                             Public Sign Page
@@ -193,7 +192,6 @@ function PublicSigner() {
                         </p>
                     </div>
 
-                    {/* PDF Card - SAME AS DASHBOARD */}
                     <div className="mt-6 bg-slate-100 rounded-xl p-6 shadow">
                         <div className="flex gap-6 overflow-hidden">
                             <FieldSidebar
