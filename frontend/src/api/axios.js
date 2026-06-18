@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL.https://document-signature-app-ich9.onrender.com,
+  baseURL: import.meta.env.VITE_API_URL,
 });
 
 // Attach JWT token to every request
