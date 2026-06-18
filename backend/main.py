@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -21,6 +22,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+os.makedirs("uploads", exist_ok=True)
+os.makedirs("signed_pdfs", exist_ok=True)
 
 app.include_router(auth_router)
 app.include_router(dashboard_router)
