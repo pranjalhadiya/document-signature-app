@@ -327,7 +327,7 @@ function Dashboard() {
                           );
 
                           window.open(
-                            `http://127.0.0.1:8000/${res.data.file}`,
+                             res.data.file_url,
                             "_blank"
                           );
                         } catch (err) {
@@ -369,7 +369,7 @@ function Dashboard() {
 
               <div className="flex-1 overflow-visible">
                 <PdfViewer
-                  fileUrl={`http://127.0.0.1:8000/uploads/${selectedDoc.filename}`}
+                  fileUrl={selectedDoc.file_url}
                   fields={placedFields}
                   removeField={removeField}
                   pdfRef={pdfRef}

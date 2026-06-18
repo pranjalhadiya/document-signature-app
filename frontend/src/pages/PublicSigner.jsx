@@ -38,6 +38,8 @@ function PublicSigner() {
 
     const pdfRef = useRef(null);
 
+    const removeField = () => {};
+
     useEffect(() => {
         loadDocument();
     }, []);
@@ -205,6 +207,7 @@ function PublicSigner() {
                                 <PdfViewer
                                     fileUrl={document.file_url}
                                     fields={placedFields}
+                                    removeField={removeField}
                                     pdfRef={pdfRef}
                                     currentPage={currentPage}
                                     setCurrentPage={setCurrentPage}

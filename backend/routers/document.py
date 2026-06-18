@@ -2,6 +2,7 @@ import os
 import shutil
 import fitz
 import secrets
+import requests
 
 from fastapi import (
     APIRouter,
@@ -21,6 +22,7 @@ from models.signature import Signature
 from models.signing_link import SigningLink
 from utils.dependencies import get_current_user
 from utils.audit import create_audit_log
+from utils.supabase_client import supabase
 
 router = APIRouter(
     prefix="/api/documents",
@@ -54,21 +56,20 @@ def upload_pdf(
             detail="Only PDF files allowed"
         )
 
-    file_path = os.path.join(
-        UPLOAD_DIR,
-        file.filename
+    content = file.file.read()
+
+    supabase.storage.from_("documents").upload(
+        file.filename,
+        content
     )
 
-    # Save uploaded file to local storage
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(
-            file.file,
-            buffer
-        )
+    file_url = supabase.storage.from_(
+        "documents"
+    ).get_public_url(file.filename)
 
     document = Document(
         filename=file.filename,
-        filepath=file_path,
+        file_url=file_url,
         owner_id=current_user.id
     )
 
@@ -137,7 +138,12 @@ def generate_signed_pdf(
             detail="No fields found"
         )
 
-    pdf = fitz.open(document.filepath)
+    response = requests.get(document.file_url)
+
+    pdf = fitz.open(
+        stream=response.content,
+        filetype="pdf"
+    )
 
     for sig in signatures:
 
@@ -165,6 +171,11 @@ def generate_signed_pdf(
     )
 
     pdf.save(output_path)
+    with open(output_path, "rb") as f:
+        supabase.storage.from_("signed-pdfs").upload(
+            f"signed_{document.filename}",
+            f.read()
+        )
     pdf.close()
 
     create_audit_log(
@@ -175,9 +186,15 @@ def generate_signed_pdf(
         request.client.host
     )
 
+    signed_url = supabase.storage.from_(
+        "signed-pdfs"
+    ).get_public_url(
+        f"signed_{document.filename}"
+    )
+
     return {
         "message": "PDF generated",
-        "file": output_path
+        "file_url": signed_url
     }
 
 @router.post("/{document_id}/share")
@@ -208,7 +225,7 @@ def generate_sign_link(
 
     return {
         "token": token,
-        "link": f"http://localhost:5173/sign/{token}"
+        "link": f"{os.getenv('FRONTEND_URL')}/sign/{token}"
     }
 
 @router.get("/public/{token}")
@@ -237,5 +254,5 @@ def get_document_by_token(
     return {
         "document_id": document.id,
         "filename": document.filename,
-        "file_url": f"http://127.0.0.1:8000/uploads/{document.filename}"
+        "file_url": document.file_url
     }

@@ -7,7 +7,8 @@ class Document(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     filename = Column(String(255), nullable=False)
-    filepath = Column(String(500), nullable=False)
+    file_url = Column(String)
+    signed_file_url = Column(String, nullable=True)
 
     owner_id = Column(
         Integer,
