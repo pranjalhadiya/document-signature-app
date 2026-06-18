@@ -61,7 +61,8 @@ def upload_pdf(
 
     supabase.storage.from_("documents").upload(
         unique_filename,
-        content
+        content,
+        {"content-type": "application/pdf"}
     )
 
     file_url = supabase.storage.from_(
@@ -176,7 +177,8 @@ def generate_signed_pdf(
 
     supabase.storage.from_("signed-pdfs").upload(
         signed_filename,
-        pdf_bytes
+        pdf_bytes,
+        {"content-type": "application/pdf"}
     )
 
     create_audit_log(
