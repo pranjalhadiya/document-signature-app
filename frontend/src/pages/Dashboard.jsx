@@ -326,12 +326,18 @@ function Dashboard() {
                             `/api/documents/${doc.id}/generate`
                           );
 
-                          window.open(
-                             res.data.file_url,
-                            "_blank"
-                          );
+                          alert(JSON.stringify(res.data));
+
+                          window.open(res.data.file_url, "_blank");
+
                         } catch (err) {
                           console.error(err);
+
+                          alert(
+                            err.response?.data?.detail ||
+                            err.message ||
+                            "Generate PDF failed"
+                          );
                         }
                       }}
                       className="bg-green-600 text-white px-4 py-2 rounded"

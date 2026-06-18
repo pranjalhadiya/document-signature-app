@@ -1,8 +1,9 @@
 import os
-import shutil
 import fitz
 import secrets
 import requests
+import io
+import uuid
 
 from fastapi import (
     APIRouter,
@@ -38,10 +39,6 @@ def get_db():
     finally:
         db.close()
 
-
-UPLOAD_DIR = "uploads"
-
-
 @router.post("/upload")
 def upload_pdf(
     request: Request,
@@ -58,14 +55,18 @@ def upload_pdf(
 
     content = file.file.read()
 
+    unique_filename = (
+        f"{uuid.uuid4()}_{file.filename}"
+    )
+
     supabase.storage.from_("documents").upload(
-        file.filename,
+        unique_filename,
         content
     )
 
     file_url = supabase.storage.from_(
         "documents"
-    ).get_public_url(file.filename)
+    ).get_public_url(unique_filename)
 
     document = Document(
         filename=file.filename,
@@ -165,18 +166,18 @@ def generate_signed_pdf(
             fontsize=16,
             color=(0, 0, 0)
         )
+    
+    pdf_bytes = pdf.write()
+    pdf.close()
 
-    output_path = (
-        f"signed_pdfs/signed_{document.filename}"
+    signed_filename = (
+        f"{uuid.uuid4()}_signed_{document.filename}"
     )
 
-    pdf.save(output_path)
-    with open(output_path, "rb") as f:
-        supabase.storage.from_("signed-pdfs").upload(
-            f"signed_{document.filename}",
-            f.read()
-        )
-    pdf.close()
+    supabase.storage.from_("signed-pdfs").upload(
+        signed_filename,
+        pdf_bytes
+    )
 
     create_audit_log(
         db,
@@ -189,8 +190,13 @@ def generate_signed_pdf(
     signed_url = supabase.storage.from_(
         "signed-pdfs"
     ).get_public_url(
-        f"signed_{document.filename}"
+        signed_filename
     )
+
+    print("SIGNED URL:", signed_url)
+
+    document.signed_file_url = signed_url
+    db.commit()
 
     return {
         "message": "PDF generated",
